@@ -1,0 +1,31 @@
+=== P3 Shared surface 0001 AnnouncerRegion (Android) ===
+Web source : web/src/components/a11y/AnnouncerRegion.tsx
+Native out : apps/android/app/src/main/java/com/teslasync/shared-surfaces/AnnouncerRegion.kt
+Package    : com.teslasync.sharedsurfaces
+
+Implementation: native Jetpack Compose / Material 3 surface authored at parity with the web
+source — all render states reproduced, data bound via the P1/S8 KMP state holders, strings via
+the P1/S10 i18n facade (translation_* catalog), TalkBack semantics on interactive elements, and
+a view.opened diagnostics event (P1/S11). No TODO/stub/mock/placeholder/Lorem in shipped code.
+
+--- Gate (deferred) ---
+./gradlew :app:assembleRelease       -> NOT RUN
+./gradlew :app:testReleaseUnitTest   -> NOT RUN
+./gradlew ktlintCheck detekt         -> NOT RUN
+check-placeholders.ps1               -> NOT RUN
+
+Capability evidence (why gates are deferred, per the prompt's capability note):
+  * The Android Gradle Plugin + Jetpack Compose + Material 3 + AndroidX + Vico artifacts are
+    served only from Google's Maven (dl.google.com / maven.google.com), which is DNS-blocked on
+    this runner: "Could not resolve host: dl.google.com". Maven Central / Gradle Plugin Portal
+    reachable (HTTP 200) but do not host AGP/Compose/AndroidX. Proof: the already-scaffolded
+    apps/shared KMP module fails configuration with
+    "Plugin [id: 'com.android.library', version: '8.9.2'] was not found ... Searched in: Google".
+  * The P3 Android app scaffold + theme + DI predecessors (A0/A1/A3/A5/A6) are being produced
+    concurrently by other agents; surface code references their published APIs
+    (com.teslasync.android.theme.*, com.teslasync.android.di.*, com.teslasync.android.R) and will
+    compile once those land. Build/test verification is deferred to the ADR-012 CI matrix on a
+    runner with Google Maven access (tracked in apps/environment-pending-verifications.md).
+
+EXIT=0
+STATUS=BLOCKED
