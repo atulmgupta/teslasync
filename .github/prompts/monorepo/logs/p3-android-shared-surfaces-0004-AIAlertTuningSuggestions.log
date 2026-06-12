@@ -1,0 +1,63 @@
+=== P3 Shared surface 0004 AIAlertTuningSuggestions (Android) ===
+Web source : web/src/components/ai/AIAlertTuningSuggestions.tsx
+Native out : apps/android/app/src/main/java/com/teslasync/shared-surfaces/AIAlertTuningSuggestions.kt
+Package    : com.teslasync.sharedsurfaces
+
+Implementation: native Jetpack Compose / Material 3 surface authored at parity with the web
+source. Reproduced behaviour, branch-for-branch with the web component:
+  * withAiFeature off-mode gate -> surface is ABSENT (renders nothing) when aiFeatureEnabled is
+    false (ADR-015 §I5). Root carries testTag "ai-feature-alert-tuning-suggestions-root".
+  * AIFeatureCard scaffold (header + Helix badge + descriptive subtitle + below-placed action +
+    output region + typed-proposal children slot) reproduced with Material 3 primitives — the web
+    AIFeatureCard/AiOutputPanel/withAiFeature trio has no dedicated Android component prompt, so
+    the scaffold is composed inline from platform primitives per the Android-HIG instruction
+    ("native primitives, not web Tailwind").
+  * Computed disabled (web Rule W1-A): computeCanStart(ruleId, phase) + AiFeatureStream.isBusy
+    gate both buttons — never a literal disabled flag.
+  * tool_result capture: extractAlertRulePatch() folds the draft_alert_rule_patch frame into the
+    typed AlertRuleDraftPatch field-for-field (numbers only when numeric, strings only when
+    non-blank), mirroring the web handleEvent capture exactly. Pure + public so the prompt's
+    adapter unit test can target it without composing the view.
+  * No direct I/O from the view: the SSE start / cancel-on-ruleId-change / proposal-reset
+    lifecycle lives in the injected P1/S8 holder; the view consumes a folded AiFeatureStream +
+    captured proposal and calls onSuggest / onApplyDraft (the AlertStudio editor merge). The panel
+    NEVER persists — the canonical AlertStudio Save button remains the sole write path
+    (ADR-015 §I3 + §I8).
+  * States reproduced (the branches the web source actually renders): gated-off (absent), idle,
+    streaming (spinner + "Helix is thinking…"), error (polite failure text; the Suggest button is
+    the retry affordance), done-with-proposal (review list + Apply to form), done-without-proposal
+    (no preview). The generic prompt-checklist "stale"/"offline" states do NOT apply: an AI stream
+    is not a cache-then-network Resource feed, and the web source has no stale/offline branch.
+  * i18n: every visible string resolves through the P1/S10 facade (stringRes -> translation_*
+    catalog). All keys already present in res/values/strings.xml:
+      translation_notifications_alertStudio_aiTuning_{title,description,suggestButton,applyButton,previewLabel,badge}
+      translation_chatbot_thinking, translation_queryError_title
+    The proposed-patch field identifiers (value_num, cooldown_min, …) are rendered verbatim as
+    technical keys, matching the web source which does not translate them.
+  * Accessibility: action buttons carry stateDescription + testTag; 48dp Material touch targets;
+    theme-token colours (no hardcoded web hex) so dark/light + font-scale follow the A1 theme.
+  * view.opened diagnostics event emitted via TrackSurfaceView(slug="AIAlertTuningSuggestions")
+    (P1/S11). No TODO/stub/mock/placeholder/Lorem in shipped code.
+
+--- Gate (deferred) ---
+./gradlew :app:assembleRelease       -> NOT RUN
+./gradlew :app:testReleaseUnitTest   -> NOT RUN
+./gradlew ktlintCheck detekt         -> NOT RUN
+check-placeholders.ps1               -> NOT RUN
+
+Capability evidence (why gates are deferred, per the prompt's capability note):
+  * The Android Gradle Plugin + Jetpack Compose + Material 3 + AndroidX artifacts are served only
+    from Google's Maven (dl.google.com / maven.google.com), which is DNS-blocked on this runner:
+    "Could not resolve host: dl.google.com". Maven Central / Gradle Plugin Portal are reachable
+    but do not host AGP/Compose/AndroidX. Per the operator directive, the predecessor-gate is
+    explicitly bypassed for this sandbox: the Android toolchain cannot resolve here and the build
+    is verified by other agents / the ADR-012 CI matrix on a runner with Google Maven access.
+  * The P3 Android app scaffold + theme + DI predecessors (A0/A1/A3/A5/A6) are produced
+    concurrently; this surface references their published APIs (com.teslasync.android.theme.*,
+    com.teslasync.android.di.* via the shared TrackSurfaceView, com.teslasync.android.R) and the
+    same-package shared scaffold (stringRes, TrackSurfaceView). It compiles once those land.
+    Build/test verification is deferred to CI (tracked in
+    apps/environment-pending-verifications.md).
+
+EXIT=0
+STATUS=BLOCKED
