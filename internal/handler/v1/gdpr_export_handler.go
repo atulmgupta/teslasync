@@ -66,10 +66,10 @@ func (h *GDPRExportHandler) Get(w http.ResponseWriter, r *http.Request) {
 	httputil.Respond(w, http.StatusOK, a)
 }
 
-// Download streams the gzipped tar bundle. Caller MUST have a valid
-// session — auth is enforced by the parent route middleware. The
-// download counter is bumped synchronously so an attacker who taps
-// the URL still gets the bump recorded.
+// Download serves the gzipped tar bundle. Local-fs artifacts are
+// streamed from disk; object-store artifacts are served via a 302 to a
+// short-lived presigned URL. Caller MUST have a valid session — auth is
+// enforced by the parent route middleware.
 func (h *GDPRExportHandler) Download(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
@@ -90,13 +90,40 @@ func (h *GDPRExportHandler) Download(w http.ResponseWriter, r *http.Request) {
 		middleware.HandleError(w, err)
 		return
 	}
-	if a.StorageKind != gdprexportsvc.StorageKindLocalFS {
-		// S3 / object-store fetch path lives in a future PR; for
-		// now only local-fs is implemented end-to-end.
+	switch a.StorageKind {
+	case gdprexportsvc.StorageKindLocalFS:
+		h.streamLocal(w, r, id, a)
+	case gdprexportsvc.StorageKindS3:
+		h.redirectObjectStore(w, r, id, a)
+	default:
 		httputil.RespondError(w, http.StatusNotImplemented, "STORAGE_KIND_UNSUPPORTED",
 			"storage kind "+string(a.StorageKind)+" download not implemented")
+	}
+}
+
+// redirectObjectStore issues a 302 to a short-lived presigned URL so
+// the browser pulls the bundle straight from the object store instead
+// of proxying large GDPR bundles through the API process. The download
+// counter is bumped before redirecting because — unlike the local-fs
+// path — the API never observes the byte stream completing.
+func (h *GDPRExportHandler) redirectObjectStore(w http.ResponseWriter, r *http.Request, id string, a *gdprexportsvc.Artifact) {
+	url, err := h.svc.SignedDownloadURL(r.Context(), a)
+	if errors.Is(err, gdprexportsvc.ErrStorageUnavailable) {
+		httputil.RespondError(w, http.StatusServiceUnavailable, "STORAGE_NOT_CONFIGURED",
+			"object storage backend not configured on this deployment")
 		return
 	}
+	if err != nil {
+		middleware.HandleError(w, err)
+		return
+	}
+	_ = h.svc.RecordDownload(r.Context(), id)
+	http.Redirect(w, r, url, http.StatusFound)
+}
+
+// streamLocal streams the gzipped tar bundle from the local
+// filesystem.
+func (h *GDPRExportHandler) streamLocal(w http.ResponseWriter, r *http.Request, id string, a *gdprexportsvc.Artifact) {
 	f, err := openExportFile(a.StoragePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

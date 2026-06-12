@@ -25,8 +25,7 @@ import { Skeleton } from '@/components/feedback/Skeleton';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { InlineCallout } from '@/components/feedback/InlineCallout';
 import { RangePicker, VehicleSelect, PillFilterBar, type PillItem } from '@/components/forms';
-import { SearchInput } from '@/components/forms/SearchInput';
-import { FilterBar } from '@/components/forms/FilterBar';
+import { SearchInput } from '@/components/forms/SearchInput';import { FilterBar } from '@/components/forms/FilterBar';
 import { ActiveFilterChips, type FilterChipDescriptor } from '@/components/forms/ActiveFilterChips';
 import { useUrlBatch, useUrlEnum, useUrlString, useUrlNumber } from '@/hooks/useUrlState';
 import { parseSearchQuery, matchesTokens, compareNumeric } from '@/lib/searchQuery';
@@ -34,6 +33,7 @@ import { FadeIn } from '@/components/motion/FadeIn';
 import { StaggerContainer } from '@/components/motion/StaggerContainer';
 import { StaggerItem } from '@/components/motion/StaggerItem';
 import { useDrives, useBulkDeleteDrives } from '@/api/hooks/useDriving';
+import { apiUrl } from '@/api/client';
 import { useFormatting } from '@/hooks/useFormatting';
 import { useUnits } from '@/hooks/useUnits';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -896,13 +896,13 @@ export default function DrivesListPage() {
               ))}
               <span className="mx-1 h-4 w-px bg-[var(--surface-2)]" />
               <a
-                href={`/api/v1/export/drives?format=csv${startDate ? `&start=${startDate}` : ''}${endDate ? `&end=${endDate}` : ''}${vehicleId ? `&vehicle_id=${vehicleId}` : ''}`}
+                href={apiUrl(`/export/drives?format=csv${startDate ? `&start=${startDate}` : ''}${endDate ? `&end=${endDate}` : ''}${vehicleId ? `&vehicle_id=${vehicleId}` : ''}`)}
                 download="teslasync-drives.csv"
               >
                 <Button variant="secondary" size="sm" icon={<Download className="h-3.5 w-3.5" />}>CSV</Button>
               </a>
               <a
-                href={`/api/v1/export/drives?format=json${startDate ? `&start=${startDate}` : ''}${endDate ? `&end=${endDate}` : ''}${vehicleId ? `&vehicle_id=${vehicleId}` : ''}`}
+                href={apiUrl(`/export/drives?format=json${startDate ? `&start=${startDate}` : ''}${endDate ? `&end=${endDate}` : ''}${vehicleId ? `&vehicle_id=${vehicleId}` : ''}`)}
                 download="teslasync-drives.json"
               >
                 <Button variant="secondary" size="sm" icon={<Download className="h-3.5 w-3.5" />}>JSON</Button>

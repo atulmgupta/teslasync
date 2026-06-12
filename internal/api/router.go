@@ -3851,7 +3851,7 @@ func NewRouter(db *database.DB, teslaClient *tesla.Client, mqttClient *mqtt.Clie
 		auditViewerSvc := auditviewersvc.New(opt.AuditLogQueryRepo, opt.AuditRecorder)
 		v1AdminObs := v1handlers.NewAdminObservabilityHandler(adminobsSvc)
 		v1AdminAudit := v1handlers.NewAdminAuditHandler(auditViewerSvc)
-		v1GDPRExport := v1handlers.NewGDPRExportHandler(gdprexportsvc.New(opt.GDPRArtifactRepo))
+		v1GDPRExport := v1handlers.NewGDPRExportHandler(gdprexportsvc.New(opt.GDPRArtifactRepo, opt.GDPRStorageProvider))
 		r.Group(func(r chi.Router) {
 			r.Use(httprate.LimitByIP(60, 1*time.Minute))
 			r.Use(handlermw.QueryBudget(handlermw.QueryBudgets{

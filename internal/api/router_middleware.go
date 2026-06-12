@@ -18,6 +18,7 @@ import (
 	"github.com/ev-dev-labs/teslasync/internal/flags"
 	"github.com/ev-dev-labs/teslasync/internal/mqtt"
 	"github.com/ev-dev-labs/teslasync/internal/polling"
+	"github.com/ev-dev-labs/teslasync/internal/port/external"
 	"github.com/ev-dev-labs/teslasync/internal/rotation"
 	"github.com/ev-dev-labs/teslasync/internal/schemacheck"
 	signal "github.com/ev-dev-labs/teslasync/internal/signal"
@@ -59,6 +60,10 @@ type RouterOptions struct {
 	HypertableMetricsRepo *dbobs.HypertableMetricsRepo
 	IngestXRayRepo        *dbobs.IngestXRayRepo
 	GDPRArtifactRepo      *dbgdpr.ArtifactRepo
+	// GDPRStorageProvider serves object-store-backed GDPR export
+	// bundles. Optional: nil keeps local-fs downloads working while
+	// S3-backed artifacts return 503 STORAGE_NOT_CONFIGURED.
+	GDPRStorageProvider external.StorageProvider
 	RotationTracker       *rotation.Tracker
 	SchemaSeed            schemacheck.Fingerprint
 
